@@ -1,0 +1,20 @@
+#!/usr/bin/env zsh
+
+source_DIR=${0:A:h}
+
+function push_pythonpath() {
+	pth=$1:A
+	echo "+ ${pth}"
+	export PATH=${pth}/script:$PATH
+	export PYTHONPATH=${pth}/package:$PYTHONPATH
+}
+
+export WAYSTACK_test_DIR=${source_DIR}/test
+
+push_pythonpath ${source_DIR}/../waystack
+push_pythonpath ${source_DIR}
+
+typeset -T PYTHONPATH pythonpath
+
+typeset -U pythonpath
+typeset -U path
