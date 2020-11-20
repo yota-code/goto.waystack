@@ -10,3 +10,7 @@ push	1	5
 push	7	3
 >>	2
 !!
+insert	3	8	5
+insert	4	7	5
+insert	5	6	5
+!!

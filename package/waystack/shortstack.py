@@ -41,27 +41,10 @@ class ShortStack() :
 					self.initial = n
 			return n
 
-		def trim(self, w_nbr=1) :
-			print(f" >> ShortStack.trim({w_nbr})", file=self.debug)
-
-			""" remove w_nbr waypoints at the end of the w_nbr """
-
-			for z in range(w_nbr) :
-				i = self.final
-				p, w, n = self.stack[i]
-				self.stack[i] = [None, None, None]
-				self._free_slot.append(i)
-				self.final = p
-
-			self.insert_pos = self.initial
-
-			return w_nbr
-
-
 		@property
 		def free_slot(self) :
 			i = self._free_slot.pop(0)
-			print(f" --> ShortStack.free_slot = {i}", file=self.debug)
+			self.pp(f"--> ShortStack.free_slot = {i}")
 			return i
 
 		def __str__(self) :
@@ -79,38 +62,28 @@ class ShortStack() :
 					str(w) 
 				]))
 			route = ' -> '.join(w.id for w in self if w is not None)
-			return '\n' + '\n'.join(stack) + f'\n  === [  {route}  ] ===' + '\n'
+			return '\n' + '\n'.join(stack) + f'\n  === [  {route}  ] === free: {self._free_slot}' + '\n'
 
 		def __iter__(self) :
+			loop_set = set()
 			i = self.initial
 			while i is not None :
-				p, w, n = self.stack[i]
+				p, w, n = self.stack[i]					
 				if w is not None :
 					yield w
+				if i in loop_set :
+					break
+				loop_set.add(i)
 				i = n
 
-
-		def delete(self, * id_lst) :
-			print(f" >> ShortStack.delete({', '.join(id_lst)})", file=self.debug)
+		def cmd_del(self, * id_lst) :
+			self.pp(f" >> ShortStack.delete({', '.join(id_lst)})")
 			""" waypoints must be provided in reverse order, from final to initial """
 
 			delete_cnt = 0
 
 			id_lst = list(id_lst)
 
-			# delete those at the end, easier, could have been trimmed
-			for z in id_lst :
-				if z == self.final :
-					i = self.final
-					p, w, n = self.stack[i]
-					self.stack[i] = [None, None, None]
-					self._free_slot.append()
-					delete_cnt += 1
-					self.final = p
-				else :
-					break
-
-			# delete the others in-between, more difficult, done step by step in reverse order
 			i = self.final
 			while i is not None and id_lst :
 				p, w, n = self.stack[i]
@@ -129,47 +102,76 @@ class ShortStack() :
 					id_lst.pop(0)
 				i = p
 
-			self.insert_pos = self.initial
+			self.cmd_begin()
 
 			return delete_cnt
-		
-		def insert(self, prev_id, w) :
-			print(f" >> ShortStack.insert({prev_id}, {w}) initial={self.initial} final={self.final}", file=self.debug)
 
-			i = self.insert_pos
-			while i != None :
-				prev_p, prev_w, prev_n = self.stack[i]
-				if prev_n == prev_id :
+		def cmd_begin(self) :
+			self.cursor_pos = 0
+			self.cursor_ind = self.initial
+
+		def cmd_add(self, insert_pos, w) :
+			self.pp(f">>> ShortStack.cmd_add({insert_pos}, {w}) {self.initial} -> {self.final}")
+
+			if self.cursor_ind == self.final :
+				# the cursor is as the last point, it's easier to just push
+				return self._cmd_push(w)
+
+			# self.pp(f"self.cursor_ind: {self.cursor_ind}")
+			# self.pp(f"self.cursor_pos: {self.cursor_pos}")
+
+			prev_p, prev_w, prev_n = None, None, self.initial
+			while self.cursor_ind is not None :
+
+				curs_p, curs_w, curs_n = self.stack[self.cursor_ind]
+				# self.pp("CURS:", curs_p, curs_w, curs_n)
+				if self.cursor_pos == insert_pos :
+
+					prev_p, prev_w, prev_n = self.stack[curs_p]
+					# self.pp("PREV:", prev_p, prev_w, prev_n)
+
 					try :
 						j = self.free_slot
 					except IndexError :
 						return None
-					self.stack[j] = [i, w, prev_n]
-					self.stack[i][2] = j
-					self.insert_pos = i
+
+					self.stack[j] = [curs_p, w, prev_n]
+					self.stack[curs_p][2] = j
+					self.stack[prev_n][0] = j
+
+					self.cursor_ind = j
 					return j
+
 				else :
-					i = prev_n
+					self.cursor_pos += 1
+					self.cursor_ind = curs_n
+
+				# self.pp(f"self.cursor_ind: {self.cursor_ind}")
+				# self.pp(f"self.cursor_pos: {self.cursor_pos}")
+
 		
-		def push(self, w) :
-			print(f" >> ShortStack.push({w})", file=self.debug)
+		def _cmd_push(self, w) :
+			# add a waypoint at the end
+			self.pp(f">>> ShortStack._cmd_push({w})")
 
 			try :
-				i = self.free_slot
+				j = self.free_slot
 			except IndexError :
 				return None
 
-			if self.final == self.initial and self.stack[self.final][1] is None :
-				# empty stack
-				self.stack[i] = [None, w, None]
+			if self.stack[self.final][1] is None :
+				# the stack is empty
+				self.stack[j] = [None, w, None]
 			else :
-				self.stack[self.final][2] = i
-				self.stack[i] = [self.final, w, None]
-			self.final = i
+				self.stack[self.final][2] = j
+				self.stack[j] = [self.final, w, None]
 
-			self.insert_pos = self.initial
+			self.final = j
 
-			return i
+			self.cursor_pos += 1
+			self.cursor_ind = j
+
+			return j
 
 
 
@@ -177,18 +179,18 @@ class ShortStack() :
 
 if __name__ == '__main__' :
 	u = ShortStack()
-	print(u)
+	self.pp(u)
 	u.push(W(3, 4))
-	print(u)
+	self.pp(u)
 	u.push(W(1, 2))
-	print(u)
+	self.pp(u)
 	u.push(W(5, 6))
-	print(u)
+	self.pp(u)
 	u.delete('B')
-	print(u)
+	self.pp(u)
 	u.push(W(7, 8))
-	print(u)
+	self.pp(u)
 	u.push(W(3, 8))
-	print(u)
+	self.pp(u)
 	u.insert('C', W(1, 8))
-	print(u)
+	self.pp(u)

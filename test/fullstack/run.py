@@ -9,8 +9,6 @@ from cc_pathlib import Path
 
 import waystack
 
-from waystack.waypoint import Waypoint, W, reset_W
-
 def qeval(s) :
 	try :
 		return ast.literal_eval(s)
@@ -18,32 +16,29 @@ def qeval(s) :
 		return s
 
 def test(line_lst, output=sys.stdout) :
-	line_lst = (cwd / "input.tsv").load()
 
-	reset_W()
+	fms = waystack.FullStack()
+	fms.debug = output
 
-	u = waystack.ShortStack()
-	u.debug = output
+	mon = waystack.ShortStack()
+	mon.debug = output
+	# upm = waystack.ShortStack()
 
 	for line in line_lst :
+		cmd, * param = [qeval(cell) for cell in line]
 		print("\n---  " + ' '.join(line) + "\n", file=output)
-
-		line = [qeval(cell) for cell in line]
-
-		cmd, * param = line
-		if cmd == "push" :
-			ret = u.push(W(* param))
-		elif cmd == "delete" :
-			ret = u.delete(* param)
-		elif cmd == "trim" :
-			ret = u.trim(* param)
-		elif cmd == "insert" :
-			prev_id = param.pop(0)
-			ret = u.insert(prev_id, W(* param))
-
-		print("RETURN:", ret, file=output)
-
-		print(u, file=output)
+		if cmd == '!!' :
+			print("\n~~~ MON", file=output)
+			mon_check = fms.commit(mon)
+			# print("\n~~~ UPM", file=output)
+			# upm_check = fms.commit(upm)
+		elif cmd == '->' :
+			pass
+		elif cmd == '>>' :
+			# fast forward
+			fms.start = param.pop(0)
+		else :
+			fms.execute(cmd, * param)
 
 if __name__ == '__main__' :
 	for arg in sys.argv[1:] :

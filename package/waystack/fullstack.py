@@ -1,32 +1,45 @@
 #!/usr/bin/env python3
 
+import sys
+
+import waystack.levenstein
+
 from waystack.waypoint import W
 
 class FullStack() :
+
+	debug = sys.stdout
+
+	def pp(self, * pos) :
+		print(* pos, file=self.debug)
+
 	def __init__(self) :
 		self.stack = list()
-		self.start = 0
+		self.start = 2
+
+	def __getitem__(self, index) :
+		return self.stack[self.start + index]
 
 	def __str__(self) :
 		stack = list()
 		for i, w in enumerate(self.stack) :
-			stack.append(f'{i:2d} : {w}')
+			stack.append(('>>' if i == self.start else '  ') + f'{i:2d} : {w}')
 		return '\n'.join(stack)
 
 	def cmd_delete(self, pos) :
-		print(f" >> FullStack.cmd_delete({pos})")
+		self.pp(f" >> FullStack.cmd_delete({pos})")
 		self.stack.pop(pos)
 
 	def cmd_insert(self, pos, wpt) :
-		print(f" >> FullStack.cmd_insert({pos}, {wpt})")
+		self.pp(f" >> FullStack.cmd_insert({pos}, {wpt})")
 		self.stack.insert(pos, wpt)
 
 	def cmd_push(self, wpt) :
-		print(f" >> FullStack.cmd_push({wpt})")
+		self.pp(f" >> FullStack.cmd_push({wpt})")
 		self.stack.append(wpt)
 
 	def cmd_swap(self, pos_a, pos_b) :
-		print(f" >> FullStack.cmd_swap({pos_a}, {pos_b})")
+		self.pp(f" >> FullStack.cmd_swap({pos_a}, {pos_b})")
 		self.stack[pos_a], self.stack[pos_b] = self.stack[pos_b], self.stack[pos_a]
 
 	def execute(self, cmd, * param):
@@ -50,34 +63,47 @@ class FullStack() :
 
 	def commit(self, other) :
 
-		print(str(self))
+		self.pp(self)
+		self.pp(other)
 
-		w_final = other.stack[other.final][1]
-		i_final = None if w_final is None else w_final.id
+		other.cmd_begin()
 
-		short_set = set(w.id for w in other)
-		full_set = set(w.id for w in self.stack[self.start:self.start + 4])
+		short_lst = [w.id for w in other]
+		full_lst = [w.id for w in self.stack[self.start:self.start + other.size]]
 
-		print("SHORT:", ', '.join(short_set))
-		print("FULL", ', '.join(full_set))
+		self.pp(short_lst)
+		self.pp(full_lst)
 
-		to_be_deleted = short_set - full_set
-		to_be_added = full_set - short_set
+		diff_lst = waystack.levenstein.diff(short_lst, full_lst)
+		self.pp(diff_lst, '\n')
 
-		print('DEL:', ', '.join(to_be_deleted))
-		print('ADD:', ', '.join(to_be_added))
+		n = 0
+		del_lst = list()
+		for block in diff_lst :
+			for item in block.line :
+				if block.action in '-/' :
+					self.pp("DEL: ", n, short_lst[n])
+					del_lst.append(short_lst[n])
+				if block.action in '=-/' :
+					n += 1
 
-		other.delete(* sorted(short_set - full_set))
+		if del_lst :
+			other.cmd_del(* reversed(del_lst))
+			self.pp(other)
 
-		mode = "PUSH" if i_final is None else "INSERT"
-		for i, w in enumerate( self.stack[self.start:self.start + 4] ) :
-			print(w.id, i_final, mode, w.id in to_be_added)
-			if w.id == i_final :
-				mode = "PUSH"
-			if w.id in to_be_added :
-				if mode == "INSERT" :
-					other.insert(i, w)
-				else :
-					other.push(w)
+		n = 0
+		for block in diff_lst :
+			for item in block.line :
+				if block.action in '+*' :
+					self.pp("ADD: ", n, self[n])
+					other.cmd_add(n, self[n])
+					self.pp(other)
+				if block.action in '=+*' :
+					n += 1
 
-		print(other)
+		short_lst = [w.id for w in other]
+
+		self.pp(short_lst)
+		self.pp(full_lst)
+
+		return
