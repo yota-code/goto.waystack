@@ -34,7 +34,7 @@ def test(line_lst, output=sys.stdout) :
 			# upm_check = fms.commit(upm)
 		elif cmd == '->' :
 			pass
-		elif cmd == '>>' :
+		elif cmd == '##' :
 			# fast forward
 			fms.start = param.pop(0)
 		else :
