@@ -13,9 +13,9 @@ class FullStack() :
 	def pp(self, * pos) :
 		print(* pos, file=self.debug)
 
-	def __init__(self) :
+	def __init__(self, start=0) :
 		self.stack = list()
-		self.start = 2
+		self.start = start
 
 	def __getitem__(self, index) :
 		return self.stack[self.start + index]
@@ -88,15 +88,20 @@ class FullStack() :
 					n += 1
 
 		if del_lst :
-			other.cmd_del(* reversed(del_lst))
+			ret_del = other.cmd_del(* reversed(del_lst))
+			assert(len(del_lst) == ret_del)
 			self.pp(other)
+		else :
+			ret_begin = other.cmd_begin()
+			print("begin:", ret_begin)
 
 		n = 0
 		for block in diff_lst :
 			for item in block.line :
 				if block.action in '+*' :
 					self.pp("ADD: ", n, self[n])
-					other.cmd_add(n, self[n])
+					ret_add = other.cmd_add(n, self[n])
+					print("add:", ret_add)
 					self.pp(other)
 				if block.action in '=+*' :
 					n += 1

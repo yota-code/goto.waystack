@@ -17,12 +17,18 @@ def qeval(s) :
 
 def test(line_lst, output=sys.stdout) :
 
-	fms = waystack.FullStack()
-	fms.debug = output
+	if line_lst[0][0] == '##' :
+		null, p_start, p_size = line_lst.pop(0)
+		fms = waystack.FullStack(p_start)
+		mon = waystack.ShortStack(p_size)
+		# upm = waystack.ShortStack(p_size)
+	else :
+		fms = waystack.FullStack()
+		mon = waystack.ShortStack()
+		# upm = waystack.ShortStack()
 
-	mon = waystack.ShortStack()
+	fms.debug = output
 	mon.debug = output
-	# upm = waystack.ShortStack()
 
 	for line in line_lst :
 		cmd, * param = [qeval(cell) for cell in line]

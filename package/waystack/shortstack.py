@@ -109,6 +109,8 @@ class ShortStack() :
 		def cmd_begin(self) :
 			self.cursor_pos = 0
 			self.cursor_ind = self.initial
+			
+			return self.cursor_ind
 
 		def cmd_add(self, insert_pos, w) :
 			self.pp(f">>> ShortStack.cmd_add({insert_pos}, {w}) {self.initial} -> {self.final}")
